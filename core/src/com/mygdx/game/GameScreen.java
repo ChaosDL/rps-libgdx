@@ -2,8 +2,8 @@ package com.mygdx.game;
 
 import java.util.Iterator;
 
-import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
@@ -17,25 +17,24 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.TimeUtils;
 
-public class MyGdxGame extends ApplicationAdapter {
-	/*SpriteBatch batch;
-	Texture img;*/
+public class GameScreen implements Screen {
+	
+	final Drop game;
+	
 	private Texture dropImage;
 	private Texture bucketImage;
 	private Sound dropSound;
 	private Music rainMusic;
 	
 	private OrthographicCamera camera;
-	private SpriteBatch batch;
 	private Rectangle bucket;
 	
 	private Array<Rectangle> raindrops;
 	private long lastDropTime;
-	@Override
-	public void create () {
-		/*batch = new SpriteBatch();
-		img = new Texture("badlogic.jpg");
-		*/
+	private int dropsGathered;
+	
+	public GameScreen(Drop game) {
+		this.game = game;
 		dropImage = new Texture(Gdx.files.internal("droplet.png"));
 		bucketImage = new Texture(Gdx.files.internal("bucket.png"));
 		
@@ -43,11 +42,9 @@ public class MyGdxGame extends ApplicationAdapter {
 		rainMusic = Gdx.audio.newMusic(Gdx.files.internal("rain.mp3"));
 		
 		rainMusic.setLooping(true);
-		rainMusic.play();
 		
 		camera = new OrthographicCamera();
 		camera.setToOrtho(false, 800, 480);
-		batch = new SpriteBatch();
 		bucket = new Rectangle();
 		bucket.setX(800/2 - 64/2);
 		bucket.setY(20);
@@ -55,6 +52,7 @@ public class MyGdxGame extends ApplicationAdapter {
 		raindrops = new Array<Rectangle>();
 		spawnRaindrop();
 	}
+	
 	public void spawnRaindrop(){
 		Rectangle raindrop = new Rectangle();
 		raindrop.setX(MathUtils.random(0, 800-64));
@@ -64,24 +62,25 @@ public class MyGdxGame extends ApplicationAdapter {
 		lastDropTime = TimeUtils.nanoTime();
 	}
 	@Override
-	public void render () {
-		/*
-		Gdx.gl.glClearColor(1, 0, 0, 1);
-		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-		batch.begin();
-		batch.draw(img, 0, 0);
-		batch.end();
-		*/
+	public void show() {
+		rainMusic.play();
+
+	}
+
+	@Override
+	public void render(float delta) {
+		// TODO Auto-generated method stub
 		Gdx.gl.glClearColor(0, 0, 0.2f, 1);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 		camera.update();
-		batch.setProjectionMatrix(camera.combined);
-		batch.begin();
-		batch.draw(bucketImage, bucket.getX(), bucket.getY());
+		game.getBatch().setProjectionMatrix(camera.combined);
+		game.getBatch().begin();
+		game.getFont().draw(game.getBatch(), "Tears Collected : " + dropsGathered, 0, 480);
+		game.getBatch().draw(bucketImage, bucket.getX(), bucket.getY());
 		for(Rectangle raindrop:raindrops){
-			batch.draw(dropImage, raindrop.getX(), raindrop.getY());
+			game.getBatch().draw(dropImage, raindrop.getX(), raindrop.getY());
 		}
-		batch.end();
+		game.getBatch().end();
 		
 		if(Gdx.input.isTouched()){
 			Vector3 touchPos = new Vector3();
@@ -91,31 +90,55 @@ public class MyGdxGame extends ApplicationAdapter {
 		}
 		if(Gdx.input.isKeyPressed(Keys.LEFT)) bucket.setX(bucket.getX()-(200*Gdx.graphics.getDeltaTime()));
 		if(Gdx.input.isKeyPressed(Keys.RIGHT)) bucket.setX(bucket.getX()+(200*Gdx.graphics.getDeltaTime()));
+		
 		if(bucket.getX()<0)bucket.setX(0);
 		if(bucket.getX()>800-64)bucket.setX(800-64);
+		
 		if(TimeUtils.nanoTime()-lastDropTime > 1000000000) spawnRaindrop();
+		
 		Iterator<Rectangle> iter = raindrops.iterator();
 		while(iter.hasNext()){
 			Rectangle raindrop = iter.next();
 			raindrop.setY(raindrop.getY()-(200*Gdx.graphics.getDeltaTime()));
 			if(raindrop.getY() + 64 < 0) iter.remove();
 			if(raindrop.overlaps(bucket)){
+				dropsGathered++;
 				dropSound.play();
 				iter.remove();
 			}
 		}
 	}
-	
+
 	@Override
-	public void dispose () {
-		/*
-		batch.dispose();
-		img.dispose();
-		*/
+	public void resize(int width, int height) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void pause() {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void resume() {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void hide() {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void dispose() {
 		dropImage.dispose();
 		bucketImage.dispose();
 		dropSound.dispose();
 		rainMusic.dispose();
-		batch.dispose();
 	}
+
 }

@@ -2,5 +2,6 @@
 <resources>
 
     <string name="app_name">my-gdx-game</string>
+    <string name="FakeName">GiveItToMe</string>
 
 </resources>
