@@ -15,6 +15,9 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.Pool;
+import com.badlogic.gdx.utils.Pool.Poolable;
+import com.badlogic.gdx.utils.Pools;
 import com.badlogic.gdx.utils.TimeUtils;
 
 public class GameScreen implements Screen {
@@ -29,7 +32,18 @@ public class GameScreen implements Screen {
 	private OrthographicCamera camera;
 	private Rectangle bucket;
 	
-	private Array<Rectangle> raindrops;
+	private Array<Raindrop> activeRaindrops;
+	private Pool<Raindrop> raindropPool = new Pool<Raindrop>(){
+
+		@Override
+		protected Raindrop newObject() {
+			//return new Raindrop(MathUtils.random(0, 800-64), 480, 64);
+			return new Raindrop(MathUtils.random(0, 800-64), 480, 64);
+		}
+		
+	};
+	//An alternative way of creating Pool. This requires Raindrop to be static and for it to have a blank constructor.
+	//private Pool<Raindrop> raindropPool = Pools.get(Raindrop.class);
 	private long lastDropTime;
 	private int dropsGathered;
 	
@@ -49,16 +63,37 @@ public class GameScreen implements Screen {
 		bucket.setX(800/2 - 64/2);
 		bucket.setY(20);
 		bucket.setSize(64);
-		raindrops = new Array<Rectangle>();
-		//spawnRaindrop();
+		activeRaindrops = new Array<Raindrop>();
 	}
-	
+	public class Raindrop extends Rectangle implements Poolable{
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
+
+		public Raindrop(int x, int y, int size){
+			super(x, y, size, size);
+		}
+		public Raindrop() {
+			super();
+		}
+		public void init(int x, int y, int size){
+			setPosition(x, y);
+			setSize(size);
+		}
+		public void update(){
+			setY(y-(200*Gdx.graphics.getDeltaTime()));
+		}
+
+		@Override
+		public void reset() {
+			setPosition(MathUtils.random(0, 800-64), 480);
+		}
+	}
 	public void spawnRaindrop(){
-		Rectangle raindrop = new Rectangle();
-		raindrop.setX(MathUtils.random(0, 800-64));
-		raindrop.setY(480);
-		raindrop.setSize(64);
-		raindrops.add(raindrop);
+		Raindrop raindrop = raindropPool.obtain();
+		//raindrop.init(MathUtils.random(0, 800-64), 480, 64);
+		activeRaindrops.add(raindrop);
 		lastDropTime = TimeUtils.nanoTime();
 	}
 	@Override
@@ -77,7 +112,7 @@ public class GameScreen implements Screen {
 		game.getBatch().begin();
 		game.getFont().draw(game.getBatch(), "Tears Collected : " + dropsGathered, 0, 480);
 		game.getBatch().draw(bucketImage, bucket.getX(), bucket.getY());
-		for(Rectangle raindrop:raindrops){
+		for(Rectangle raindrop:activeRaindrops){
 			game.getBatch().draw(dropImage, raindrop.getX(), raindrop.getY());
 		}
 		game.getBatch().end();
@@ -96,17 +131,23 @@ public class GameScreen implements Screen {
 		
 		if(TimeUtils.nanoTime()-lastDropTime > 1000000000) spawnRaindrop();
 		
-		Iterator<Rectangle> iter = raindrops.iterator();
+		
+		Iterator<Raindrop> iter = activeRaindrops.iterator();
 		while(iter.hasNext()){
-			Rectangle raindrop = iter.next();
-			raindrop.setY(raindrop.getY()-(200*Gdx.graphics.getDeltaTime()));
-			if(raindrop.getY() + 64 < 0) iter.remove();
+			Raindrop raindrop = iter.next();
+			raindrop.update();
+			if(raindrop.getY() + 64 < 0){
+				iter.remove();
+				raindropPool.free(raindrop);
+			}
 			if(raindrop.overlaps(bucket)){
 				dropsGathered++;
 				dropSound.play();
 				iter.remove();
+				raindropPool.free(raindrop);
 			}
 		}
+		
 	}
 
 	@Override
