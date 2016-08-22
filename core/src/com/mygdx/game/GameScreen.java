@@ -50,7 +50,7 @@ public class GameScreen implements Screen {
 		bucket.setY(20);
 		bucket.setSize(64);
 		raindrops = new Array<Rectangle>();
-		spawnRaindrop();
+		//spawnRaindrop();
 	}
 	
 	public void spawnRaindrop(){

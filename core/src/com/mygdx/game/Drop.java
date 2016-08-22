@@ -21,6 +21,8 @@ public class Drop extends Game {
 		return font;
 	}
 	public void dispose(){
+		super.dispose();
+		screen.dispose();
 		batch.dispose();
 		font.dispose();
 	}
